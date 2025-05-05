@@ -1,0 +1,443 @@
+{
+  "name": "My workflow 3",
+  "nodes": [
+    {
+      "parameters": {
+        "pollTimes": {
+          "item": [
+            {
+              "mode": "everyMinute"
+            }
+          ]
+        },
+        "simple": false,
+        "filters": {},
+        "options": {}
+      },
+      "type": "n8n-nodes-base.gmailTrigger",
+      "typeVersion": 1.2,
+      "position": [
+        -600,
+        55
+      ],
+      "id": "2cb05a36-f660-45d8-a474-0683202ac17b",
+      "name": "Gmail Trigger",
+      "credentials": {
+        "gmailOAuth2": {
+          "id": "PY1Zr2fX41POnCk8",
+          "name": "Gmail account 2"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "operation": "getAll",
+        "limit": 20,
+        "simple": false,
+        "filters": {
+          "q": "-from:me"
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.gmail",
+      "typeVersion": 2.1,
+      "position": [
+        -380,
+        55
+      ],
+      "id": "6d24a89d-933d-4dcb-88c2-0b9cceddeff7",
+      "name": "Gmail",
+      "webhookId": "ba1e9075-e2ff-4a33-885d-6cc3bab883fa",
+      "credentials": {
+        "gmailOAuth2": {
+          "id": "PY1Zr2fX41POnCk8",
+          "name": "Gmail account 2"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "inputText": "=Subject: {{ $json.subject }}\ncontent : {{ $json.text }}",
+        "categories": {
+          "categories": [
+            {
+              "category": "Useless",
+              "description": "You are a highly accurate email classification system. Your task is to read the subject and content of each email and classify it as \"useless\" if it falls into any of the following categories:\n1. Meeting Acceptance – Emails that confirm or acknowledge a meeting invite or meeting accepted. (e.g., “See you at 3pm” or “Meeting confirmed”). But don't mark as useless when meeting invite or reschedule. \n2. Sales – Emails that attempt to sell a product or service, often including calls to action such as “Buy now,” “Schedule a demo,” or providing pricing information.\n3. Marketing – Newsletters, product updates, special offers, or brand awareness content.\n4. Advertisement – Emails that promote products, services, or brands purely for advertising purposes, including sponsored content or third-party promotions.\n5. Promotion – Emails offering discounts, deals, limited-time offers, coupons, or promotional campaigns intended to entice purchases or engagement.\\\n\nImportant Exclusion Rule:\nDo NOT classify an email as \"useless\" if it is a genuine, human-written message expressing interest, asking questions, or seeking assistance. Examples include job-related inquiries, requests for help, personal introductions, or service-related queries."
+            },
+            {
+              "category": "important",
+              "description": "Classify Gmail emails into the \"Important\" category only if they meet any of the following criteria:\n\nLegal: The email contains legal information, such as contracts, terms, policies, or legal notices.\n\nFinance: The email addresses financial matters, including account balances, statements, or financial planning.\n\nPayment: The email involves payment details, such as invoices, receipts, billing, or payment confirmations.\n\nDo not include emails that are ads, promotions, or marketing content, even if they mention payments or finances.\n\nCarefully check the email content to ensure it genuinely falls under legal, financial, or payment-related topics before labeling it as \"Important.\""
+            },
+            {
+              "category": "Follow-Up",
+              "description": "Classify an email as a \"Follow-up\" only if it meets one or more of the following criteria:  Refers to a previous email, conversation, or unanswered message.  Contains phrases like:  \"Just following up\"  \"I wanted to check in on...\"  \"As mentioned in my previous email...\"  \"In case you missed my last message...\"  \"Resending in case it got buried...\"  Seeks a response, update, or action on something previously sent or discussed.  Do not classify emails as follow-ups if they are new, unrelated messages or part of marketing sequences."
+            }
+          ]
+        },
+        "options": {
+          "fallback": "other",
+          "systemPromptTemplate": "=You are the text classifier if text in sales, marketing, meeting acceptance, meeting notification and Advertisement send it to useless category. "
+        }
+      },
+      "type": "@n8n/n8n-nodes-langchain.textClassifier",
+      "typeVersion": 1,
+      "position": [
+        1160,
+        55
+      ],
+      "id": "6de6ecd6-fc56-4d94-b307-aac073c68d59",
+      "name": "Text Classifier"
+    },
+    {
+      "parameters": {
+        "operation": "addLabels",
+        "messageId": "={{$node[\"Gmail1\"].json[\"id\"]}}",
+        "labelIds": [
+          "Label_5757584223462861928"
+        ]
+      },
+      "type": "n8n-nodes-base.gmail",
+      "typeVersion": 2.1,
+      "position": [
+        1536,
+        55
+      ],
+      "id": "1a63dbfd-a2c4-470c-8f75-5ff11ae36b93",
+      "name": "Useless",
+      "webhookId": "8dd45276-111e-4b10-8334-cc7c5b5d4106",
+      "credentials": {
+        "gmailOAuth2": {
+          "id": "PY1Zr2fX41POnCk8",
+          "name": "Gmail account 2"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "model": {
+          "__rl": true,
+          "mode": "list",
+          "value": "gpt-4o-mini"
+        },
+        "options": {
+          "temperature": 0.2
+        }
+      },
+      "type": "@n8n/n8n-nodes-langchain.lmChatOpenAi",
+      "typeVersion": 1.2,
+      "position": [
+        1248,
+        275
+      ],
+      "id": "72ee0e47-d98d-45fc-a874-07b05071cf59",
+      "name": "OpenAI Chat Model",
+      "credentials": {
+        "openAiApi": {
+          "id": "r1JtmxkLlx8nop1S",
+          "name": "n8n free OpenAI API credits"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "language": "python",
+        "pythonCode": "# Loop over input items and add a new field called 'hasReferences' to the JSON of each one\nfor item in _input.all():\n    has_references = item['json'].get('references')\n    item['json']['hasReferences'] = bool(has_references)\n\nreturn _input.all()\n"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        -160,
+        55
+      ],
+      "id": "5a37a36e-e0c5-458e-9f0f-77a3bf0b3bbc",
+      "name": "hasReference"
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 2
+          },
+          "conditions": [
+            {
+              "id": "1ef25da7-99af-491f-9373-30fb65438ec6",
+              "leftValue": "={{ $json.hasReferences }}",
+              "rightValue": "",
+              "operator": {
+                "type": "boolean",
+                "operation": "true",
+                "singleValue": true
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.2,
+      "position": [
+        60,
+        55
+      ],
+      "id": "506a7885-dce0-41bb-a518-8985102b8943",
+      "name": "Check Reference"
+    },
+    {
+      "parameters": {
+        "resource": "thread",
+        "operation": "get",
+        "threadId": "={{ $json.threadId }}",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.gmail",
+      "typeVersion": 2.1,
+      "position": [
+        280,
+        -20
+      ],
+      "id": "657e5505-dbf5-4409-93a6-81c0f5b5aba0",
+      "name": "Check Thread",
+      "webhookId": "7fa33d9a-8856-44b1-99be-4c57c7ed95f1",
+      "credentials": {
+        "gmailOAuth2": {
+          "id": "PY1Zr2fX41POnCk8",
+          "name": "Gmail account 2"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "language": "python",
+        "pythonCode": "# Loop over input items and add a new field called 'contain' to the JSON of each one\nflag = False\nname = \"@hicounselor\"\n\nfor item in _input.all():\n    count = 0\n    flag = False\n    for val in item['json'].get('messages', []):\n        count += 1\n        eaddress = val.get('From', '')\n        if name in eaddress:\n            flag = True\n    item['json']['contain'] = flag\n    item['json']['count'] = count\n\nreturn _input.all()\n"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        500,
+        -20
+      ],
+      "id": "4c71bb06-eddb-4263-8157-fdb6e81108fd",
+      "name": "Code1"
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 2
+          },
+          "conditions": [
+            {
+              "id": "3280e25f-5747-4756-b829-c641356866e8",
+              "leftValue": "={{ $json.contain }}",
+              "rightValue": "",
+              "operator": {
+                "type": "boolean",
+                "operation": "false",
+                "singleValue": true
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.2,
+      "position": [
+        720,
+        -20
+      ],
+      "id": "8f94301c-a17b-4772-869c-6e7aa1ba42b7",
+      "name": "If1"
+    },
+    {
+      "parameters": {
+        "operation": "get",
+        "messageId": "={{ $json.messages[$json.count-1].id }}",
+        "simple": false,
+        "options": {}
+      },
+      "type": "n8n-nodes-base.gmail",
+      "typeVersion": 2.1,
+      "position": [
+        940,
+        -20
+      ],
+      "id": "49a76090-5b56-4800-a2d1-26db3633ceb1",
+      "name": "Gmail1",
+      "webhookId": "18192db5-4b1d-44a8-82b7-22e822c0326d",
+      "credentials": {
+        "gmailOAuth2": {
+          "id": "PY1Zr2fX41POnCk8",
+          "name": "Gmail account 2"
+        }
+      }
+    }
+  ],
+  "pinData": {},
+  "connections": {
+    "Gmail Trigger": {
+      "main": [
+        [
+          {
+            "node": "Gmail",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Gmail": {
+      "main": [
+        [
+          {
+            "node": "hasReference",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Text Classifier": {
+      "main": [
+        [
+          {
+            "node": "Useless",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [],
+        [
+          {
+            "node": "Useless",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "OpenAI Chat Model": {
+      "ai_languageModel": [
+        [
+          {
+            "node": "Text Classifier",
+            "type": "ai_languageModel",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "hasReference": {
+      "main": [
+        [
+          {
+            "node": "Check Reference",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Check Reference": {
+      "main": [
+        [
+          {
+            "node": "Check Thread",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Text Classifier",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Check Thread": {
+      "main": [
+        [
+          {
+            "node": "Code1",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Code1": {
+      "main": [
+        [
+          {
+            "node": "If1",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "If1": {
+      "main": [
+        [
+          {
+            "node": "Gmail1",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        []
+      ]
+    },
+    "Gmail1": {
+      "main": [
+        [
+          {
+            "node": "Text Classifier",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": true,
+  "settings": {
+    "executionOrder": "v1"
+  },
+  "versionId": "b88d284a-1061-4e09-8146-aa4f47175472",
+  "meta": {
+    "templateCredsSetupCompleted": true,
+    "instanceId": "54daa582f3433590dc2a22a872dc72521b6861aadee725f131cb740da862238d"
+  },
+  "id": "9itOZo0D7pWwi846",
+  "tags": [
+    {
+      "name": "LIVE",
+      "id": "Ag0CRgIeV48ZghWR",
+      "createdAt": "2025-05-05T09:25:49.095Z",
+      "updatedAt": "2025-05-05T09:25:49.095Z"
+    },
+    {
+      "name": "Aniruddha",
+      "id": "SsLmXe7kwpaJqPnj",
+      "createdAt": "2025-05-05T09:25:49.118Z",
+      "updatedAt": "2025-05-05T09:25:49.118Z"
+    },
+    {
+      "name": "Gmail",
+      "id": "5XlDDJIBEMeP45GC",
+      "createdAt": "2025-05-05T09:25:49.140Z",
+      "updatedAt": "2025-05-05T09:25:49.140Z"
+    }
+  ]
+}
